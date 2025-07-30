@@ -1,0 +1,88 @@
+# fortigate_config.txt
+config system interface
+    edit "port2"
+        set allowaccess ping https ssh http
+    next
+end
+
+config firewall vip
+    edit "web-server-ssh-vip"
+        set extintf "port1"
+        set portforward enable
+        set protocol tcp
+        set extport 1022
+        set mappedip "172.37.2.10"
+        set mappedport 22
+    next
+    edit "app-server-ssh-vip"
+        set extintf "port1"
+        set portforward enable
+        set protocol tcp
+        set extport 1023
+        set mappedip "172.37.3.10"
+        set mappedport 22
+    next
+end
+
+config firewall policy
+    edit 1
+        set name "Allow_Inbound_SSH_to_Web"
+        set srcintf "port1"
+        set dstintf "port2"
+        set srcaddr "all"
+        set dstaddr "web-server-ssh-vip"
+        set action accept
+        set schedule "always"
+        set service "ALL"
+        set nat enable
+    next
+    edit 2
+        set name "Allow_Inbound_SSH_to_App"
+        set srcintf "port1"
+        set dstintf "port2"
+        set srcaddr "all"
+        set dstaddr "app-server-ssh-vip"
+        set action accept
+        set schedule "always"
+        set service "ALL"
+        set nat enable
+    next
+    edit 3
+        set name "Allow_Outbound_Internet"
+        set srcintf "port2"
+        set dstintf "port1"
+        set srcaddr "all"
+        set dstaddr "all"
+        set action accept
+        set schedule "always"
+        set service "ALL"
+        set nat enable
+    next
+    edit 4
+        set name "Allow_Web_to_App_Ping"
+        set srcintf "port2"
+        set dstintf "port2"
+        set srcaddr "all"
+        set dstaddr "all"
+        set action accept
+        set schedule "always"
+        set service "PING"
+    next
+end
+
+# ----- ADD THIS ENTIRE BLOCK TO THE END OF THE FILE -----
+
+config router static
+    # Route to the WEB Subnet
+    edit 10
+        set dst 172.37.2.0 255.255.255.0
+        set gateway 172.37.1.1
+        set device "port2"
+    next
+    # Route to the APP Subnet
+    edit 11
+        set dst 172.37.3.0 255.255.255.0
+        set gateway 172.37.1.1
+        set device "port2"
+    next
+end
